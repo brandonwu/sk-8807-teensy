@@ -31,3 +31,8 @@ This is an experimental implementation of the protocol for the IBM SK-8807 infra
 * In rare cases, the key timeout (auto release if no keycode received within 500ms) fails to release the keys
 * The mouse acceleration feels weird. I need to play with the formula
 * The sleep button unreliably sleeps the computer - you might need to double or triple press it (this is because it sends both the sleep and wakeup in order to do both actions)
+
+# Technical
+* The protocol is 1200 baud 8N1 UART, but the bit values are inverted (this only really matters for mouse coordinates).
+* Keypress codes are two bytes. The first 3 bits in both bytes are the same, and the last 4 are the same but inverted. The MSB (LSB in this code) of the first byte is 0 in keydown codes, and 1 otherwise. If you're following along with the code and wondering why they're bit reversed, it's because the input bits are shifted in from the right, and I calculated the keycodes before realizing my mistake.
+* Mouse codes are three bytes. The first byte is `0xC0` (`0x3` in the code) to indicate it is a mouse code, then the second and third bytes are the x and y deflection, respectively. These are signed 2's complement numbers that are offset by -2.
