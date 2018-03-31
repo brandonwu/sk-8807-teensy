@@ -414,6 +414,12 @@ bool pressKey(int keycode) {
 	case 0x619:
 		keypress = KEY_DELETE;
 		break;
+	case 0x9689: // Back key above left arrow
+		keypress = 0x224 | 0xE400; // AC Back
+		break;
+	case 0x2639: // Forward key above right arrow
+		keypress = 0x225 | 0xE400; // AC Forward
+		break;
 	case 0xFEE1:
 		keypress = KEY_UP;
 		break;
@@ -425,6 +431,27 @@ bool pressKey(int keycode) {
 		break;
 	case 0xAEB1:
 		keypress = KEY_RIGHT;
+		break;
+	case 0x7669: // Black function key
+		keypress = 0x192 | 0xE400; // AC Calculator
+		break;
+	case 0xF6E9: // Green function key
+		// keypress = 
+		break;
+	case 0xB6A9: // Yellow function key
+		// keypress = 
+		break;
+	case 0x1609: // Blue function key
+		// keypress = 
+		break;
+	case 0x2837: // Red function key
+		// keypress = 
+		break;
+	case 0xC8D7: // Purple function key
+		// keypress = 
+		break;
+	case 0xD6C9: // Lavender function key
+		// keypress = 
 		break;
 	case 0xA6B9: // White function key (needs to be double clicked to sleep)
 		// Trigger USB wakeup
