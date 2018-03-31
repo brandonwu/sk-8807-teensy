@@ -4,6 +4,8 @@ volatile int bitsRead = 0;				// Number of bits that have been read
 volatile bool readyRead = false;		// True if two bytes worth of data have been read in
 volatile bool toggle = true;			// Current value of the clock out pin - used to see when reads are clocked in on a logic analyzer
 
+bool numKeyPressed = false;				// Set to the current state of the "Num" key - used for shifting to a different level
+
 IntervalTimer timer0;					// Used to trigger the reads on each byte
 
 #define CLK_OUT_PIN 13					// Clock out: changes state when a bit is being read. Useful to debug timing with a logic analyzer. By default, the LED pin so it blinks when receiving
@@ -138,7 +140,11 @@ bool moveMouse(int mousecoords) {
 		return false; // Don't move the mouse if the value is out of bounds
 	}
 
-	Mouse.move(-x * 1.5, -y * 1.5); // Play with this more, it should be an acceleration curve not a multiplier
+	if (!numKeyPressed) {// If not holding Num, just do a regular mouse move
+		Mouse.move(-x * 1.5, -y * 1.5); // Play with this more, it should be an acceleration curve not a multiplier
+	} else {// Otherwise scroll up/down
+		Mouse.scroll(y * 0.25);
+	}
 
 	return true;
 }
@@ -188,28 +194,28 @@ bool pressKey(int keycode) {
 		keypress = KEY_F5;
 		break;
 	case 0x9A85:
-		keypress = KEY_F6;
+		keypress = numKeyPressed ? 0x226 | 0xE400 /* AC Stop */ : KEY_F6;
 		break;
 	case 0x5A45:
-		keypress = KEY_F7;
+		keypress = numKeyPressed ? 0x227 | 0xE400 /* AC Refresh */ : KEY_F7;
 		break;
 	case 0xDAC5:
-		keypress = KEY_F8;
+		keypress = numKeyPressed ? 0x21F | 0xE400 /* AC Find */ : KEY_F8; // in Firefox, AC Find pulls up the Bookmarks sidebar with the search field highlighted (?)
 		break;
 	case 0x2A35:
-		keypress = KEY_F9;
+		keypress = numKeyPressed ? 0x22A | 0xE400 /* AC Bookmarks */ : KEY_F9; // AC Bookmarks doesn't do anything in Firefox
 		break;
 	case 0xAAB5:
-		keypress = KEY_F10;
+		keypress = numKeyPressed ? KEY_MEDIA_VOLUME_INC : KEY_F10;
 		break;
 	case 0x6A75:
-		keypress = KEY_F11;
+		keypress = numKeyPressed ? KEY_MEDIA_VOLUME_DEC : KEY_F11;
 		break;
 	case 0xEAF5:
-		keypress = KEY_F12;
+		keypress = numKeyPressed ? KEY_MEDIA_MUTE : KEY_F12;
 		break;
 	case 0x6E71:
-		keypress = KEY_PRINTSCREEN;
+		keypress = numKeyPressed ? 0x208 | 0xE400 /* AC Print */ : KEY_PRINTSCREEN; // AC Print doesn't do anything in Firefox or Notepad
 		break;
 	case 0xA15:
 		keypress = KEY_NUM_LOCK;
@@ -242,16 +248,16 @@ bool pressKey(int keycode) {
 		keypress = KEY_6;
 		break;
 	case 0x243B:
-		keypress = KEY_7;
+		keypress = numKeyPressed ? KEYPAD_7 : KEY_7;
 		break;
 	case 0xA4BB:
-		keypress = KEY_8;
+		keypress = numKeyPressed ? KEYPAD_8 : KEY_8;
 		break;
 	case 0x647B:
-		keypress = KEY_9;
+		keypress = numKeyPressed ? KEYPAD_9 : KEY_9;
 		break;
 	case 0xE4FB:
-		keypress = KEY_0;
+		keypress = numKeyPressed ? KEYPAD_SLASH : KEY_0;
 		break;
 	case 0x41B:
 		keypress = KEY_MINUS;
@@ -287,16 +293,16 @@ bool pressKey(int keycode) {
 		keypress = KEY_Y;
 		break;
 	case 0xDCC3:
-		keypress = KEY_U;
+		keypress = numKeyPressed ? KEYPAD_4 : KEY_U;
 		break;
 	case 0x2C33:
-		keypress = KEY_I;
+		keypress = numKeyPressed ? KEYPAD_5 : KEY_I;
 		break;
 	case 0xACB3:
-		keypress = KEY_O;
+		keypress = numKeyPressed ? KEYPAD_6 : KEY_O;
 		break;
 	case 0x6C73:
-		keypress = KEY_P;
+		keypress = numKeyPressed ? KEYPAD_ASTERIX : KEY_P;
 		break;
 	case 0xECF3:
 		keypress = KEY_LEFT_BRACE;
@@ -332,16 +338,16 @@ bool pressKey(int keycode) {
 		keypress = KEY_H;
 		break;
 	case 0x908F:
-		keypress = KEY_J;
+		keypress = numKeyPressed ? KEYPAD_1 : KEY_J;
 		break;
 	case 0x504F:
-		keypress = KEY_K;
+		keypress = numKeyPressed ? KEYPAD_2 : KEY_K;
 		break;
 	case 0xD0CF:
-		keypress = KEY_L;
+		keypress = numKeyPressed ? KEYPAD_3 : KEY_L;
 		break;
 	case 0x203F:
-		keypress = KEY_SEMICOLON;
+		keypress = numKeyPressed ? KEYPAD_MINUS : KEY_SEMICOLON;
 		break;
 	case 0xA0BF:
 		keypress = KEY_QUOTE;
@@ -374,16 +380,16 @@ bool pressKey(int keycode) {
 		keypress = KEY_N;
 		break;
 	case 0x1807:
-		keypress = KEY_M;
+		keypress = numKeyPressed ? KEYPAD_0 : KEY_M;
 		break;
 	case 0x9887:
 		keypress = KEY_COMMA;
 		break;
 	case 0x5847:
-		keypress = KEY_PERIOD;
+		keypress = numKeyPressed ? KEYPAD_PERIOD : KEY_PERIOD;
 		break;
 	case 0xD8C7:
-		keypress = KEY_SLASH;
+		keypress = numKeyPressed ? KEYPAD_PLUS : KEY_SLASH;
 		break;
 	case 0xA8B7:
 		keypress = MODIFIERKEY_RIGHT_SHIFT;
@@ -392,12 +398,20 @@ bool pressKey(int keycode) {
 		keypress = KEY_END;
 		break;
 #ifdef SWAP_CTRL_NUM
-	case 0x7E61:
+	case 0x7E61: // The key in the bottom left corner
 #endif
 #ifndef SWAP_CTRL_NUM
-	case 0x6877:
+	case 0x6877: // The key second from the left in the bottom left corner
 #endif
 		keypress = MODIFIERKEY_CTRL;
+		break;
+#ifdef SWAP_CTRL_NUM
+	case 0x6877:
+#endif
+#ifndef SWAP_CTRL_NUM
+	case 0x7E61:
+#endif
+		numKeyPressed = keystatus;
 		break;
 	case 0x4659:
 		keypress = MODIFIERKEY_GUI;
@@ -433,10 +447,9 @@ bool pressKey(int keycode) {
 		keypress = KEY_RIGHT;
 		break;
 	case 0x7669: // Black function key
-		keypress = 0x192 | 0xE400; // AC Calculator
+		keypress = 0x192 | 0xE400; // AL Calculator
 		break;
 	case 0xF6E9: // Green function key
-		// keypress = 
 		break;
 	case 0xB6A9: // Yellow function key
 		// keypress = 
@@ -499,4 +512,5 @@ bool pressKey(int keycode) {
 void stuckKeyIsr() {// Releases all keys if keyup or repeat is not received in the configured threshold
 	Keyboard.releaseAll();
 	Mouse.set_buttons(0, 0, 0);
+	numKeyPressed = false;
 }
